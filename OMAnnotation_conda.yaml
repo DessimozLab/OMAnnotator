@@ -1,0 +1,14 @@
+name: OMAnnotation_env
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - biopython=1.78=py39h7f8727e_0
+  - gemoma=1.7.1=hdfd78af_0
+  - genometools-genometools=1.6.2=py39h6bd6087_3
+  - gffutils=0.10.1=pyh864c0ab_1
+  - python=3.9.12=h9a8a25e_1_cpython
+  - pip:
+    - pyham==1.1.11
+
