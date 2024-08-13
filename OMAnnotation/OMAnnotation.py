@@ -30,17 +30,17 @@ def build_arg_parser():
             description='Takes as input the orthoXML and species tree from OMA and create a consensus GFF and FASTA file.')
     extract_consensus_parser.set_defaults(func=extract_consensus)   
     for subp in [prepare_parser, extract_consensus_parser]:
-            subp.add_argument('-a', '--gff_annot_folder', required=True, help="A folder containing the GFF annotation files. GFF files must have the same prefix as the FASTA files.")
-            subp.add_argument('-f', '--fasta_folder', required=True, help="A folder that contains (or will contain) FASTA sequences corresponding to the annotation. FASTA files must have the same prefix as the GFF files." )
-    prepare_parser.add_argument('-d', '--DB_folder', required=True, help="The OMA DB Folder that will be used by OMA Standalone.")
-    prepare_parser.add_argument('-s', '--splice_folder', required=True, help="The folder to contain splice files")
-    prepare_parser.add_argument('-g', '--genome_file', required=True, help="The genome file to be annotated, in the FASTA format.")
-    prepare_parser.add_argument('-t', '--feature_type', help="A tsv file indicating which feature should be used in GFF file to define gene, transcript or CDS. 4 columns by line in order: filename, gene, transcript, cds.")
+            subp.add_argument('-a', '--gff_annot_folder', required=True, help="Path to the folder containing the source GFF annotations.")
+            subp.add_argument('-f', '--fasta_folder', required=True, help="Path to the output folder that will contain FASTA sequences corresponding to each annotation. =" )
+    prepare_parser.add_argument('-d', '--OMA_folder', required=True, help="Path to the OMA Standalone Folder downloaded through Export.")
+    prepare_parser.add_argument('-s', '--splice_folder', required=True, help="Path to the output folder that will contain splice files corresponding to each annotation in which splice variants are explicitely included.")
+    prepare_parser.add_argument('-g', '--genome_file', required=True, help="Path to the genome file to be annotated, in the FASTA format.")
+    prepare_parser.add_argument('-t', '--feature_type', help="Path to a tsv file indicating which feature should be used in GFF file to define gene, transcript or CDS. 4 columns by line in order: filename, gene, transcript, cds.")
 
-    extract_consensus_parser.add_argument('-x', '--orthoxml', required=True,  help='OrthoXML file from the OMA Standalone run')
-    extract_consensus_parser.add_argument('-st', '--species_tree',required=True,  help='Species tree used in the OMA Standalone run, in the newick format. A copy can be found in the output folder.')
+    extract_consensus_parser.add_argument('-x', '--orthoxml', required=True,  help='Path to the orthoXML file from the OMA Standalone run')
+    extract_consensus_parser.add_argument('-st', '--species_tree',required=True,  help='Path to the species tree used in the OMA Standalone run, in newick format. A copy can be found in the output folder of OMA as ManualSpeciesTree.nwk')
     extract_consensus_parser.add_argument('-o', '--output_prefix', required=True, help='Output file path and prefix. Two output files will be created: a GFF annotation file and a FASTA file.')
-    extract_consensus_parser.add_argument('-t', '--feature_type', help='A tsv file indicating which feature should be used in GFF file to define gene, transcript or CDS. 4 columns by line in order: filename, gene, transcript, cds.')
+    extract_consensus_parser.add_argument('-t', '--feature_type', help='"Path to a tsv file indicating which feature should be used in GFF file to define gene, transcript or CDS. 4 columns by line in order: filename, gene, transcript, cds.')
 
     
     return parser
@@ -243,8 +243,8 @@ def get_longest_seq(seq_list):
     return out_index, out_record
 
 def select_consensus_sequence(hog_prot_id_list, corr_gff_map, corr_fasta_map):
-   """Select the longest sequence as the best representative of any individual consensus genes (as representend by a HOG at the ancestor of annotations) for all 
-   of the consensus genes. Returns all consensus sequences and GFF as lists.
+    """Select the longest sequence as the best representative of any individual consensus genes (as representend by a HOG at the ancestor of annotations) for all 
+    of the consensus genes. Returns all consensus sequences and GFF as lists.
     Args:
         hog_prot_id_list (list): A list of list, where each list correspond to a consensus HOG and contains all of the protein_ids that are involved in the consensus.
         corr_gff_map (dict) : a dictionary of (protein_id, source of the annotation) to a GFF string.
@@ -252,7 +252,7 @@ def select_consensus_sequence(hog_prot_id_list, corr_gff_map, corr_fasta_map):
     Returns:
         consensus_seq (list) : a list of all the selected sequences
         consensus_gff (list) : a list of all the selected genes's GFF segment
-    """ 
+    """
     consensus_seq = []
     consensus_gff = []
     for hog_prot_id in hog_prot_id_list:
@@ -293,18 +293,47 @@ def write_splice(ofile, splice_data, sep='; '):
     with open(ofile, 'w') as output_handle:
         output_handle.write("\n".join([sep.join(x) for x in splice_data]))
 
+def get_species_tree(codes):
+    """A function to obtain a species tree for the exported data from OMA through the OMA Browser API.
+    Args:
+        codes (list) : a list of OMA's five letter species code. (Ex: HUMAN, MOUSE, DROME)
+    Return:
+        newick (str) : a newick tree containing the species of interest
+    """
+     req = urllib3.request('GET', f'https://omabrowser.org/api/taxonomy/?members={",".join(codes)}&collapse=true&type=newick')
+     data = req.data
+     newick = json.loads(data)['newick']
+     return newick
+
+def edit_parameters_with_species_tree(parameter_file, newick):
+    """Modifiy the OMAStandalone parameters file to contain a species tree that contains the exported data. Will need to be manually changed before running next step of OMAnnotation.
+    Arga:
+        parameter_file (str) : Path to the parameter file
+        newick (str) : Species tree of exported species, in newick format.
+    """
+    with open(parameter_file, 'r') as infile:
+        all_lines = [line for line in infile.readlines()]
+    written_lines = []
+    for l in all_lines:
+        if l.startswith('SpeciesTree'):
+            written_lines.append(f"SpeciesTree := '{newick}'\n")
+        else:
+            written_lines.append(l)
+    with open(parameter_file, 'w') as outfile:
+        outfile.write(''.join(written_lines))
 
 def prepare_data(args):
-        """Format the input annotations to run OMA Standalone on. First step of OMAnnotation
+    """Format the input annotations to run OMA Standalone on. First step of OMAnnotation
     Args:
-        args : the command line arguments as provided by the user. Expect fasta_folder, gff_annot_folder,  genome_file, splice_folder, DB_folder and feature_type to have value.
+        args : the command line arguments as provided by the user. Expect fasta_folder, gff_annot_folder,  genome_file, splice_folder, OMA_folder and feature_type to have value.
     """
     #Obtain parameters
     input_gff_folder = args.gff_annot_folder
     fasta_folder = args.fasta_folder
     genome_fasta = args.genome_file
     splice_folder = args.splice_folder
-    db_folder = args.DB_folder
+    db_folder = os.path.join(args.OMA_folder, 'DB')
+    parameter_file = os.path.join(args.OMA_folder,'parameters.drw')
     feature_type_file = args.feature_type
     #Use the correct GFF feature for not standard GFF, extracted from a feature type map provided by the user
     if feature_type_file:
@@ -312,6 +341,15 @@ def prepare_data(args):
     else:
         feature_type_map = None
     file_list = os.listdir(input_gff_folder)
+    spec_codes = []
+    #Check the list of species downloaded through OMA
+    for pre_oma_data in os.listdir(db_folder):
+    #Check for extension (.fa) and a length of 5 - five letter codes
+        if pre_oma_data[-3:]=='.fa' and len(pre_oma_data)==8:
+            code = pre_oma_data[:-3]
+            spec_codes.append(code)
+    newick = get_species_tree(spec_codes)
+    edit_parameters_with_species_tree(parameter_file, newick)
     #Go through all of the GFF files and make the input files needed for OMA
     for gff in file_list:
         logging.info(f'Starting {gff}')
@@ -448,7 +486,7 @@ def extract_peptide_seq(gffdb, fasta, type_map=False):
 if __name__=='__main__':
     """Main function. Will launch the orchestrator function for either prepare_data or extract_consensus, depending on which one is called (Look above to know more on what they do)
     """
-    logging.basicConfig(level=logging.info)
+    logging.basicConfig(level=logging.INFO)
     parser = build_arg_parser()
     args = parser.parse_args()
     args.func(args)
