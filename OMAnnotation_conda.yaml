@@ -9,6 +9,7 @@ dependencies:
   - genometools-genometools=1.6.2=py39h6bd6087_3
   - gffutils=0.10.1=pyh864c0ab_1
   - python=3.9.12=h9a8a25e_1_cpython
+  -urllib3=2.2.2=pyhd8ed1ab_1
   - pip:
     - pyham==1.1.11
 
