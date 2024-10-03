@@ -74,26 +74,26 @@ Required arguments ```-a (--gff_annot_folder)```, ```-g (--genome_file)```, ```-
 #### Example step 2: preparing the data
 
 Collect the genome file to annotate (here: Droso.fasta) and the GFF files of three different annotation, placed in the same directory (here: GFF).
-To prepare the data, run the following command:
+
+To prepare your annotation data, run the following command:
 ```python OMAnnotation/OMAnnotation.py prepare_data -g Droso.fasta -a GFF -f FASTA -s Splice -d OMA.2.6.0/DB/```
+This script will extract protein sequences according to the GFF files, as well as splicing isoform information if it exists, and feed this information into the OMA database to prepare for the OMA Standalone run.
 
-This script will extract protein sequences corresponding to the GFF file, as well as splicing isoform information if it exists, and feed this information into the OMA database to prepare for the OMA Standalone run.
-
-For this, you will also need OMA with a species tree that indicates the relations between the species we are annotating to all other species in OMA.
-Open the parameters.drw file, and find the ```SpeciesTree``` line. 
-Here, the tree of the downloaded species is found in the newick file. Identify the node where your species should be and add a polytomy containing all the prefix of your annotation files as prefix in this place.
+You will also need to provide OMA with a species tree that indicates the relationship between the annotation species and all other species in OMA.
+To prepare this species tree, open the parameters.drw file, and find the ```SpeciesTree``` line. 
+Here, the tree of the downloaded species is found in the Newick file. Identify the node where your species should be and add a polytomy containing all the prefixes of your annotation file names. e.g. the annotation 'RNA_seq.gff' is entered as 'RNA_seq'.
 In our case, the tree is:
 ```(BOMMO,(AEDAE,(MEGSC,(DROSI,LUCCU))));```
-We add our annotation prefix as polytomy ```(rna,homology,abinitio)``` as a sister species of *Drosophila simulans*, as it is the closest species from *Drosophila melanogaster. The modfied tree is :
+The polytomy from our example annotation prefixes is ```(rna,homology,abinitio)```. This is added as a sister species of *Drosophila simulans*, as it is the closest species to *Drosophila melanogaster, so final modified tree becomes:
 ```(BOMMO,(AEDAE,(MEGSC,((DROSI,(rna,homology,abinitio)),LUCCU))));```
 
 ### 3. Running OMA Standalone
 
 After preparing the data as explained above, we can run OMA Standalone.
 
-Refer to OMA Standalone Cheatsheet for a quick overiew of this step (https://lab.dessimoz.org/blog/media/2020/04/omastandalone_cheat_sheet.pdf), and the OMA Standaone user guide for more detailed information (https://omabrowser.org/standalone/).
+Refer to OMA Standalone Cheatsheet for a quick overview of this step (https://lab.dessimoz.org/blog/media/2020/04/omastandalone_cheat_sheet.pdf), and the OMA Standalone user guide for more detailed information (https://omabrowser.org/standalone/).
 
-_Note_: run time for the OMA Standalone step depends on the number of precomputed species you are using and the number of source annotations you are making a consensus from.
+_Note_: the run time for the OMA Standalone step depends on the number of precomputed species you are using and the number of source annotations you are making a consensus from.
 
 #### Example step 3: running OMA Standalone
 If have access to a High Performance Computer (HPC) with a SLURM scheduler, you can copy the job scripts we have included in this repository. If not, you will need to use the information from the OMA Standalone user guide to write your own. Run scripts 1-3 (oma_part1.sh, oma_part2.sh, oma_part3.sh) sequentially (it is important to wait for each script to complete before moving on to the next). 
