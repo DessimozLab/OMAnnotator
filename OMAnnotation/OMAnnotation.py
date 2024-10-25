@@ -300,7 +300,7 @@ def get_species_tree(codes):
     Return:
         newick (str) : a newick tree containing the species of interest
     """
-     req = urllib3.request('GET', f'https://omabrowser.org/api/taxonomy/?members={",".join(codes)}&collapse=true&type=newick')
+     req = urllib3.request('GET', f'https://omabrowser.org/api/taxonomy/?members={",".join(codes)}&newick=truecollapse=true&newick_leaf_label=species_code&newick_internal_label=None&newick_quote_labels=false')
      data = req.data
      newick = json.loads(data)['newick']
      return newick
