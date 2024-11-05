@@ -9,6 +9,8 @@ from Bio.SeqRecord import SeqRecord
 import logging 
 import time 
 from pyfaidx import Fasta
+import json
+import urllib3
 
 def build_arg_parser():
     """Handle the parameter sent when executing the script from the terminal
