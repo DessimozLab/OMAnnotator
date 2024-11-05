@@ -162,10 +162,10 @@ def map_gff_fasta(fasta_file, gff_file, gff_map =None):
 def extract_FASTA_sequences(fasta_file):
     """
     Read a FASTA file and extract a dictionary of protein_id (str) : record using BioPython
-    args:
+    Args:
         fasta_file (str) : path to the FASTA file
     Returns:
-    record_dict (dict) : a dictionary of protein_id (str) : record
+        record_dict (dict) : a dictionary of protein_id (str) : record
     """
     record_dict = SeqIO.to_dict(SeqIO.parse(fasta_file, "fasta"))
     return record_dict
@@ -182,7 +182,7 @@ def extract_gff(gff_file):
 
 def FASTA_gff_mapper(fasta_file, gff_file, type_map=None):
     """Create a mapping between each protein in a FASTA file and its corresponding lines in a GFF file.
-    args:
+    Args:
         fasta_file (str) : path to the FASTA file
         gff_file (str) : path to the GFF file
         type_map (dict) : a mapping of feature name used in the GFF to the standard name. Used to process non-standard GFF files. Default to None for standard files.
@@ -266,7 +266,7 @@ def select_consensus_sequence(hog_prot_id_list, corr_gff_map, corr_fasta_map):
 
 def write_fasta(ofile, consensus_seq):
     """A generalist function to write a FASTA file from a list of records using BioPython
-    Args : 
+    Args: 
         ofile (str) : Path to the output file
         consensus_seq (list) : A list of records to be  written as a FASTA file
     """
@@ -276,7 +276,7 @@ def write_fasta(ofile, consensus_seq):
 
 def write_gff(ofile, consensus_gff):
     """A generalist function to write a GFF file from a list of GFF segments by concatenating them.
-    Args : 
+    Args: 
         ofile (str) : Path to the output file
         consensus_gff (list) : a list of GFF segments to be written together
     """
@@ -285,7 +285,7 @@ def write_gff(ofile, consensus_gff):
 
 def write_splice(ofile, splice_data, sep='; '):
     """A function to write a splice file for OMA. Used in presence of alternative transcripts for a single gene.
-    Args :
+    Args:
         ofile(str) : Path to the file
         splice_data (list) : a list of list, where each of these lists correspond to a gene and contain the protein ID of the product of each of the gene's transcript.
         sep (str) : the separator to use in the splice while, default to semi-clon
@@ -300,14 +300,14 @@ def get_species_tree(codes):
     Return:
         newick (str) : a newick tree containing the species of interest
     """
-     req = urllib3.request('GET', f'https://omabrowser.org/api/taxonomy/?members={",".join(codes)}&newick=truecollapse=true&newick_leaf_label=species_code&newick_internal_label=None&newick_quote_labels=false')
-     data = req.data
-     newick = json.loads(data)['newick']
-     return newick
+    req = urllib3.request('GET', f'https://omabrowser.org/api/taxonomy/?members={",".join(codes)}&type=newick&collapse=true&newick_leaf_label=species_code&newick_internal_label=None&newick_quote_labels=false')
+    data = req.data
+    newick = json.loads(data)['newick']
+    return newick
 
 def edit_parameters_with_species_tree(parameter_file, newick):
     """Modifiy the OMAStandalone parameters file to contain a species tree that contains the exported data. Will need to be manually changed before running next step of OMAnnotation.
-    Arga:
+    Args:
         parameter_file (str) : Path to the parameter file
         newick (str) : Species tree of exported species, in newick format.
     """
