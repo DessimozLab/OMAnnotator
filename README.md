@@ -26,25 +26,25 @@ These steps are detailed below.
 
 ### 1. Exporting data from the OMA Browser
 
-OMAnnotation makes use of the OMA Standalone orthology inference software, repurposed to combine gene models from different annotation sources into a consensus annotation, using evolutionary information as a tiebreaker. It uses the OMA algorithm to integrate orthology data from other species as external evidence that a given gene exists. Since computing these relations can be computationally expensive, we recommend using precomputed data from the OMA Browser as input.
+OMAnnotation uses the OMA Standalone orthology inference software, repurposed to combine gene models from different annotation sources into a consensus annotation, using evolutionary information as a tiebreaker. It uses the OMA algorithm to integrate orthology data from other species as external evidence that a given gene exists. Since computing these relations can be computationally expensive, we recommend using precomputed data from the OMA Browser as input.
 
 You can do this through the ```https://omabrowser.org/oma/export/``` page. Select a set of species using the interactive tree or the search bar and click ```submit``` to download the all-against-all archive file. 
 
 Your species selection depends on your species of interest; we recommend selecting 5-20 species that are recognised as having a high-quality annotation and that cover some diversity in the taxonomic range of your species of interest. 
 
-_Note_: the number of species you select is a balance between the compute time you have available and the extra evolutionary information they bring. Selecting 10 species is usually optimal.
+_Note_: the number of species you select is a balance between the compute time you have available and the extra evolutionary information they bring. Selecting ten species is usually optimal.
 
 #### Example step 1: exporting data from the OMA Browser
 If you are interested in doing a test run of OMAnnotation, this example demonstrates how to reproduce a consensus annotation of *Drosophila melanogaster*.
-First, we will download the OMA orthology data for four species: 
+
+First, we will download the OMA orthology data for the following five species using the OMA export AllAll utility at https://omabrowser.org/oma/export/. 
 - *Drosophila simulans*
 - *Lucilia cuprina*
 - *Megaselia scalaris*
 - *Aedes aegyptii*
 - *Bombyx mori*
 
-Select them in the tree and then click ```submit```. When it is ready, download the archive.
-Once it is done, move the archive to your working directory, and unzip it.
+Select them in the tree and then click ``submit```. Once the archive is ready, download it, move it to your working directory, and unzip it.
 This will now be the working directory for OMAnnotation.
 
 ### 2. Preparing the data
@@ -73,18 +73,18 @@ Required arguments ```-a (--gff_annot_folder)```, ```-g (--genome_file)```, ```-
 
 #### Example step 2: preparing the data
 
-Collect the genome file to annotate (here: Droso.fasta) and the GFF files of three different annotation, placed in the same directory (here: GFF).
+Collect the genome file to annotate (here: Droso.fasta) and the GFF files of three different annotations placed in the same directory (here: GFF).
 
 To prepare your annotation data, run the following command:
 ```python OMAnnotation/OMAnnotation.py prepare_data -g Droso.fasta -a GFF -f FASTA -s Splice -d OMA.2.6.0/DB/```
 This script will extract protein sequences according to the GFF files, as well as splicing isoform information if it exists, and feed this information into the OMA database to prepare for the OMA Standalone run.
 
-You will also need to provide OMA with a species tree that indicates the relationship between the annotation species and all other species in OMA.
-To prepare this species tree, open the parameters.drw file, and find the ```SpeciesTree``` line. 
-Here, the tree of the downloaded species is found in the Newick file. Identify the node where your species should be and add a polytomy containing all the prefixes of your annotation file names. e.g. the annotation 'RNA_seq.gff' is entered as 'RNA_seq'.
+You will also need to provide OMA with a species tree that shows the relationship between the annotation species and all other species in OMA.
+Running the `prepare_data` module writes a tree for the species files you exported from OMA browser into the parameters.drw file, on the ```SpeciesTree``` line. Identify the node where your species should be and add a polytomy containing all the prefixes of your annotation file names, e.g. the annotation 'RNA_seq.gff' is entered as 'RNA_seq'.
+
 In our case, the tree is:
 ```(BOMMO,(AEDAE,(MEGSC,(DROSI,LUCCU))));```
-The polytomy from our example annotation prefixes is ```(rna,homology,abinitio)```. This is added as a sister species of *Drosophila simulans*, as it is the closest species to *Drosophila melanogaster, so final modified tree becomes:
+The polytomy from our example annotation prefixes is ```(rna,homology,abinitio)```. This is added as a sister species of *Drosophila simulans*, as it is the closest species to *Drosophila melanogaster, so the final modified tree becomes:
 ```(BOMMO,(AEDAE,(MEGSC,((DROSI,(rna,homology,abinitio)),LUCCU))));```
 
 ### 3. Running OMA Standalone
@@ -96,11 +96,11 @@ Refer to OMA Standalone Cheatsheet for a quick overview of this step (https://la
 _Note_: the run time for the OMA Standalone step depends on the number of precomputed species you are using and the number of source annotations you are making a consensus from.
 
 #### Example step 3: running OMA Standalone
-If have access to a High Performance Computer (HPC) with a SLURM scheduler, you can adapt the OMA job scripts we have included in this repository, adapting the scheduler options and directory paths for the HPC you are using. If not, you will need to use the information from the OMA Standalone user guide to write your own. Run scripts 1-3 (oma_part1.sh, oma_part2.sh, oma_part3.sh) sequentially (it is important to wait for each script to complete before moving on to the next). Check your job logs for any errors after running each script, and see https://lab.dessimoz.org/blog/media/2020/04/omastandalone_cheat_sheet.pdf for the list of output files your OMA run should generate.
+If you have access to a High Performance Computer (HPC) with a SLURM scheduler, you can copy the OMA job scripts we have included in this repository (here: OMA standalone scripts) into your OMA folder. If not, you will need to use the information from the OMA Standalone user guide to write your own. Run scripts 1-3 (oma_part1.sh, oma_part2.sh, oma_part3.sh) sequentially (it is important to wait for each script to complete before moving on to the next). Check your job logs for any errors after running each script, and see https://lab.dessimoz.org/blog/media/2020/04/omastandalone_cheat_sheet.pdf for the list of output files your OMA run should generate.
 
 ### 4. Extract the consensus annotation
 
-Once the OMA Standalone run is complete, the final step is to extract the consensus gene annotation using the resulting OrthoXML. In principle, OMAnnotation will select one gene model by what OMA infers as "ancestral Hierarchical Orthologous Groups" for the annotation: genes that are supported by either two or more annotation methods, or by only one annotation method and homologs from other species.
+Once the OMA Standalone run is complete, the final step is to extract the consensus gene annotation using the resulting OrthoXML. In principle, OMAnnotation will select one gene model from each of what OMA infers as "ancestral Hierarchical Orthologous Groups" for the annotation. These are genes supported by more than one annotation method or only one annotation method and homologs from the other user-selected related species.
 
 #### Usage
 Required arguments ```-a (--gff_annot_folder)```, ```-x (--orthoxml)```, ```-st (--species_tree) ```, ```-f (--fasta_folder)```, ```-o (--output_prefix)```
