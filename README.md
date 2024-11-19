@@ -96,7 +96,7 @@ Refer to OMA Standalone Cheatsheet for a quick overview of this step (https://la
 _Note_: the run time for the OMA Standalone step depends on the number of precomputed species you are using and the number of source annotations you are making a consensus from.
 
 #### Example step 3: running OMA Standalone
-If you have access to a High Performance Computer (HPC) with a SLURM scheduler, you can copy the OMA job scripts we have included in this repository (here: OMA standalone scripts) into your OMA folder. If not, you will need to use the information from the OMA Standalone user guide to write your own. Run scripts 1-3 (oma_part1.sh, oma_part2.sh, oma_part3.sh) sequentially (it is important to wait for each script to complete before moving on to the next). Check your job logs for any errors after running each script, and see https://lab.dessimoz.org/blog/media/2020/04/omastandalone_cheat_sheet.pdf for the list of output files your OMA run should generate.
+If you can access a High-Performance Computer (HPC) with a SLURM scheduler, you can copy the OMA job scripts we have included in the main folder of this repository into your OMA folder. If not, you will need to use the information from the OMA Standalone user guide to write your own. Run scripts 1-3 (```oma_part1.sh```, ```oma_part2.sh```, ```oma_part3.sh```) sequentially (it is important to wait for each script to complete before moving on to the next). Check your job logs for any errors after running each script, and see https://lab.dessimoz.org/blog/media/2020/04/omastandalone_cheat_sheet.pdf for the list of output files your OMA run should generate.
 
 ### 4. Extract the consensus annotation
 
