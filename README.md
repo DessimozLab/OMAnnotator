@@ -124,6 +124,6 @@ Once this is done, the resulting consensus annotation and protein FASTA file sho
 
 Run this command, substituting the paths corresponding to your directory structure if necessary:
 
-```python OMAnnotation/OMAnnotation.py extract_consensus-g Droso.fasta -a GFF -f FASTA -st OMA.2.6.0/ManualSpeciesTree.nwk -x OMA.2.6.0/Orthoxml.oxml  -o ConsensusAnnotation```
+```python OMAnnotation/OMAnnotation.py extract_consensus -g Droso.fasta -a GFF -f FASTA -st OMA.2.6.0/ManualSpeciesTree.nwk -x OMA.2.6.0/Orthoxml.oxml  -o ConsensusAnnotation```
 
 The resulting files should be available as ConsensusAnnotation.gff and ConsensusAnnotation.fa
