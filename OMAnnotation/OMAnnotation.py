@@ -19,30 +19,30 @@ def build_arg_parser():
     -----------
     A parser object with the chosen option and parameters"""
 
-    parser = argparse.ArgumentParser(description="Extract consensus sequence from a set of GFF file containing different annotatio sets for a single genome and an OMA run with these annotations.")
+    parser = argparse.ArgumentParser(description="Extract consensus sequence from a set of GFF file containing different annotation sets for a single genome and an OMA run with these annotations.")
     
     subparsers = parser.add_subparsers(title="Commands")
     subparsers.required = True
     prepare_parser = subparsers.add_parser("prepare_data", 
-            help="Handle GFF file and set up the OMA database.", 
-            description="Uses GFF file and produce FASTA files and splice files and needed, then copy it into the corresponding OMA Folder.")
+            help="Handles GFF file and set up the OMA database.", 
+            description="Uses GFF file to produce FASTA files (and splice files as needed), then copies them into the corresponding OMA Folder.")
     prepare_parser.set_defaults(func=prepare_data)
     extract_consensus_parser = subparsers.add_parser("extract_consensus", 
             help="Uses the OMA Standalone parser to create a consensus annotation.", 
-            description='Takes as input the orthoXML and species tree from OMA and create a consensus GFF and FASTA file.')
+            description='Takes as input the orthoXML and species tree from OMA and creates a consensus GFF and FASTA file.')
     extract_consensus_parser.set_defaults(func=extract_consensus)   
     for subp in [prepare_parser, extract_consensus_parser]:
             subp.add_argument('-a', '--gff_annot_folder', required=True, help="Path to the folder containing the source GFF annotations.")
-            subp.add_argument('-f', '--fasta_folder', required=True, help="Path to the output folder that will contain FASTA sequences corresponding to each annotation. =" )
-    prepare_parser.add_argument('-d', '--OMA_folder', required=True, help="Path to the OMA Standalone Folder downloaded through Export.")
+            subp.add_argument('-f', '--fasta_folder', required=True, help="Path to the output folder that will contain FASTA sequences corresponding to each annotation." )
+    prepare_parser.add_argument('-d', '--OMA_folder', required=True, help="Path to the OMA Standalone Folder downloaded through OMA Browser Export AllvsAll.")
     prepare_parser.add_argument('-s', '--splice_folder', required=True, help="Path to the output folder that will contain splice files corresponding to each annotation in which splice variants are explicitely included.")
     prepare_parser.add_argument('-g', '--genome_file', required=True, help="Path to the genome file to be annotated, in the FASTA format.")
-    prepare_parser.add_argument('-t', '--feature_type', help="Path to a tsv file indicating which feature should be used in GFF file to define gene, transcript or CDS. 4 columns by line in order: filename, gene, transcript, cds.")
+    prepare_parser.add_argument('-t', '--feature_type', help="Path to a tsv file indicating which feature should be used in GFF file to define gene, transcript or CDS. 4 columns by line in order: filename, gene, transcript, CDS.")
 
-    extract_consensus_parser.add_argument('-x', '--orthoxml', required=True,  help='Path to the orthoXML file from the OMA Standalone run')
+    extract_consensus_parser.add_argument('-x', '--orthoxml', required=True,  help='Path to the orthoXML file from the OMA Standalone run.')
     extract_consensus_parser.add_argument('-st', '--species_tree',required=True,  help='Path to the species tree used in the OMA Standalone run, in newick format. A copy can be found in the output folder of OMA as ManualSpeciesTree.nwk')
     extract_consensus_parser.add_argument('-o', '--output_prefix', required=True, help='Output file path and prefix. Two output files will be created: a GFF annotation file and a FASTA file.')
-    extract_consensus_parser.add_argument('-t', '--feature_type', help='"Path to a tsv file indicating which feature should be used in GFF file to define gene, transcript or CDS. 4 columns by line in order: filename, gene, transcript, cds.')
+    extract_consensus_parser.add_argument('-t', '--feature_type', help='"Path to a tsv file indicating which feature should be used in GFF file to define gene, transcript or CDS. 4 columns by line in order: filename, gene, transcript, CDS.')
 
     
     return parser
@@ -75,7 +75,7 @@ def extract_consensus(args):
     species_tree=args.species_tree
     output_prefix=args.output_prefix
     feature_type_file = args.feature_type
-    #If a feature_type_file was provide, obtain the mapping. Is used to read non-standard GFF definitions
+    #If a feature_type_file was provided, obtain the mapping. Is used to read non-standard GFF definitions
     if feature_type_file:
         feature_type_map = extract_feature_map(feature_type_file)
     else:
@@ -84,7 +84,7 @@ def extract_consensus(args):
     #List the files in fasta and gff directories
     fasta_files = [os.path.join(input_fasta_folder,f) for f in  os.listdir(input_fasta_folder)]
     gff_files = [os.path.join(input_gff_folder,f) for f in os.listdir(input_gff_folder)]
-    #Ger the correspondance between genes/proteins in the GFF file and sequences in the FASTA file
+    #Get the correspondance between genes/proteins in the GFF file and sequences in the FASTA file
     fasta_corr, gff_corr = map_gff_fasta(fasta_files, gff_files, feature_type_map)
     #Obtain the protein identifier for each "consensus" HOG
     protids = get_protid_per_groups(species_tree, orthoxml, '/'.join(['.'.join(f.split('.')[0:-1]) for f in os.listdir(input_fasta_folder)]))
@@ -188,13 +188,13 @@ def FASTA_gff_mapper(fasta_file, gff_file, type_map=None):
         fasta_file (str) : path to the FASTA file
         gff_file (str) : path to the GFF file
         type_map (dict) : a mapping of feature name used in the GFF to the standard name. Used to process non-standard GFF files. Default to None for standard files.
-    records = extract_FASTA_sequences(fasta_file)
     Returns: 
-        map_id_gff (dict) : a dictionary of (protein_id (str), prefixof the GFFF file (str) : GFF segment (str). Used to associate each protein to its GFF.
+        map_id_gff (dict) : a dictionary of (protein_id (str), prefix of the GFF file (str) : GFF segment (str). Used to associate each protein to its GFF.
     """
     gff_db = extract_gff(gff_file)
     prefix = '.'.join(os.path.basename(gff_file).split('.')[0:-1])
     map_id_gff = dict()
+    records = extract_FASTA_sequences(fasta_file)
     #Query the GFF db for the sequence identifier, and obtain the element and its parents  (get the top level parents and all its children if needed} --> all gene informations
     for seq_id in records.keys():
         try:
