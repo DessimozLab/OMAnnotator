@@ -43,6 +43,7 @@ def build_arg_parser():
     extract_consensus_parser.add_argument('-st', '--species_tree',required=True,  help='Path to the species tree used in the OMA Standalone run, in newick format. A copy can be found in the output folder of OMA as ManualSpeciesTree.nwk')
     extract_consensus_parser.add_argument('-o', '--output_prefix', required=True, help='Output file path and prefix. Two output files will be created: a GFF annotation file and a FASTA file.')
     extract_consensus_parser.add_argument('-t', '--feature_type', help='"Path to a tsv file indicating which feature should be used in GFF file to define gene, transcript or CDS. 4 columns by line in order: filename, gene, transcript, CDS.')
+    extract_consensus_parser.add_argument('-p', '--priorities', default=None, help='Comma-separated string indicating, in order of priorities, which source to use to make the reference sequence for each consensus gene. Should contain all file prefixes. Ex: rna,abinitio,homology')
 
     
     return parser
@@ -75,8 +76,9 @@ def extract_consensus(args):
     species_tree=args.species_tree
     output_prefix=args.output_prefix
     feature_type_file = args.feature_type
+    priorities = args.priorities
     #If a feature_type_file was provided, obtain the mapping. Is used to read non-standard GFF definitions
-    if feature_type_file:
+    if feature_type_file:   
         feature_type_map = extract_feature_map(feature_type_file)
     else:
         feature_type_map = None
@@ -84,12 +86,21 @@ def extract_consensus(args):
     #List the files in fasta and gff directories
     fasta_files = [os.path.join(input_fasta_folder,f) for f in  os.listdir(input_fasta_folder)]
     gff_files = [os.path.join(input_gff_folder,f) for f in os.listdir(input_gff_folder)]
+    if priorities:
+        prefixes = ['.'.join(os.path.basename(x).split('.')[0:-1]) for x in gff_files]
+        corresponding_file = 0
+        for src in priorities.split(','):
+            if src in prefixes:
+                corresponding_file+=1
+        if corresponding_file != len(gff_files):
+            logging.info('List in priorities does not correspond to input file prefixes. Exiting.')
+            exit()
     #Get the correspondance between genes/proteins in the GFF file and sequences in the FASTA file
     fasta_corr, gff_corr = map_gff_fasta(fasta_files, gff_files, feature_type_map)
     #Obtain the protein identifier for each "consensus" HOG
     protids = get_protid_per_groups(species_tree, orthoxml, '/'.join(['.'.join(f.split('.')[0:-1]) for f in os.listdir(input_fasta_folder)]))
     #Select one sequence for each consensus HOG and obtain its coordinate
-    cons_fasta, cons_gff = select_consensus_sequence(protids,gff_corr, fasta_corr)
+    cons_fasta, cons_gff = select_consensus_sequence(protids,gff_corr, fasta_corr,priorities)
     #Write the output files
     write_fasta(output_prefix+'.fa', cons_fasta)
     write_gff(output_prefix+'.gff', cons_gff)
@@ -113,7 +124,7 @@ def get_protid_per_groups(tree_path, orthoxml_path, ancestor):
         if sorted(ag.split('/'))== sorted(ancestor.split('/') ):
             ancestor = ag
             break
-    #Obtain the consesus ancestor and HOGs and create the list
+    #Obtain the consensus ancestor and HOGs and create the list
     ancestor_genome = ham_analysis.get_ancestral_genome_by_name(ancestor)
     ancestral_genes = ancestor_genome.genes
     for gene in ancestral_genes:
@@ -244,7 +255,28 @@ def get_longest_seq(seq_list):
             out_index = index
     return out_index, out_record
 
-def select_consensus_sequence(hog_prot_id_list, corr_gff_map, corr_fasta_map):
+def get_seq_by_prio(hog_prot_list, priorities,corr_fasta_map):
+    """Select the the representative sequence according to the priority of the source.
+    Args:
+        hog_prot_list(list) : a list of protein id and source
+        priorities(str) : a comma-separated list of source in order of more to least trustable
+        corr_fasta_map(dict) : a dict linking a couple of protein id and source to the corresponding sequence in the source FASTA file
+    Returns:
+        seq_id (str) : a sequence identifier composed of the sequence id and the prefix of its source
+        sequence (Bio.Record) : the selected BioPython record
+    """
+    seq_id=None
+    for source in priorities.split(','):
+        for identifier, sfile in hog_prot_list:
+            if sfile==source:
+                seq_id = "_".join([identifier.split(' ')[0], sfile])
+                sequence = corr_fasta_map[seq_id]
+            if seq_id:
+                break
+    return seq_id, sequence
+
+
+def select_consensus_sequence(hog_prot_id_list, corr_gff_map, corr_fasta_map, source_priorities=None):
     """Select the longest sequence as the best representative of any individual consensus genes (as representend by a HOG at the ancestor of annotations) for all 
     of the consensus genes. Returns all consensus sequences and GFF as lists.
     Args:
@@ -258,9 +290,14 @@ def select_consensus_sequence(hog_prot_id_list, corr_gff_map, corr_fasta_map):
     consensus_seq = []
     consensus_gff = []
     for hog_prot_id in hog_prot_id_list:
-        hog_record_list = [corr_fasta_map["_".join([hid.split(' ')[0], hif])] for hid, hif in hog_prot_id]
-        chosen_seq_index, chosen_seq = get_longest_seq(hog_record_list)
-        chosen_seq_id = "_".join([hog_prot_id[chosen_seq_index][0].split(' ')[0], hog_prot_id[chosen_seq_index][1]])
+
+        if not source_priorities:
+            hog_record_list = [corr_fasta_map["_".join([hid.split(' ')[0], hif])] for hid, hif in hog_prot_id]
+            chosen_seq_index, chosen_seq = get_longest_seq(hog_record_list)
+            chosen_seq_id = "_".join([hog_prot_id[chosen_seq_index][0].split(' ')[0], hog_prot_id[chosen_seq_index][1]])
+
+        else:
+            chosen_seq_id, chosen_seq = get_seq_by_prio(hog_prot_id, source_priorities,corr_fasta_map)
         corr_gff = corr_gff_map[chosen_seq_id]
         consensus_gff.append(corr_gff)
         consensus_seq.append(chosen_seq)
