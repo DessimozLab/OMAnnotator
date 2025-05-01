@@ -8,19 +8,19 @@ OMAnnotator is a workflow for combining protein-coding gene structural annotatio
 ## Installation
 
 To use the OMAnnotator toolkit, clone this GitHub repository. Then move to the repository folder and install the associated environment with:
-```conda env create -f OMAnnotation_conda.yaml```
+```conda env create -f OMAnnotator_conda.yaml```
 Then activate the environment:
-```conda activate OMAnnotation_env```
+```conda activate OMAnnotator_env```
 Then, you can try running the toolkit using:
-```python OMAnnotation/OMAnnotation.py -h```
+```python OMAnnotator/OMAnnotator.py -h```
 
 ## Using OMAnnotator
 
 OMAnnotator is run in four steps.
 1. Download precomputed protein All-against-All orthology data from the OMA Database from https://omabrowser.org/oma/export/ and extract the obtained archive.
-2. Run the prepare_data step of the OMAnnotator toolkit to prepare the annotation data to be run through OMA Standalone with the ```prepare_data``` module (see ```python OMAnnotation/OMAnnotation.py prepare_data --help``` for usage details).
+2. Run the prepare_data step of the OMAnnotator toolkit to prepare the annotation data to be run through OMA Standalone with the ```prepare_data``` module (see ```python OMAnnotator/OMAnnotator.py prepare_data --help``` for usage details).
 3. Run the OMA Standalone software
-4. Extract the consensus annotation from the OMA Standalone results with the OMAnnotator toolkit using the ```extract_consensus``` module (see ```python OMAnnotation/OMAnnotation.py extract_consensus --help``` for usage details).
+4. Extract the consensus annotation from the OMA Standalone results with the OMAnnotator toolkit using the ```extract_consensus``` module (see ```python OMAnnotator/OMAnnotator.py extract_consensus --help``` for usage details).
 
 These steps are detailed below.
 
@@ -58,7 +58,7 @@ With these two inputs and the exported data from OMA Standalone, you can use the
 #### Usage
 
 Required arguments ```-a (--gff_annot_folder)```, ```-g (--genome_file)```, ```-d (--db_folder)```, ```-f (--fasta_folder)```, ```-s (--splice_folder)```
-```usage: OMAnnotation.py prepare_data [-h] -a GFF_ANNOT_FOLDER -f FASTA_FOLDER -d DB_FOLDER -s SPLICE_FOLDER -g GENOME_FILE [-t FEATURE_TYPE]```
+```usage: OMAnnotator.py prepare_data [-h] -a GFF_ANNOT_FOLDER -f FASTA_FOLDER -d DB_FOLDER -s SPLICE_FOLDER -g GENOME_FILE [-t FEATURE_TYPE]```
 
 #### Arguments
 
@@ -76,7 +76,7 @@ Required arguments ```-a (--gff_annot_folder)```, ```-g (--genome_file)```, ```-
 Collect the genome file to annotate (here: Droso.fasta) and the GFF files of three different annotations placed in the same directory (here: GFF).
 
 To prepare your annotation data, run the following command:
-```python OMAnnotation/OMAnnotation.py prepare_data -g Droso.fasta -a GFF -f FASTA -s Splice -d OMA.2.6.0/DB/```
+```python OMAnnotator/OMAnnotator.py prepare_data -g Droso.fasta -a GFF -f FASTA -s Splice -d OMA.2.6.0/DB/```
 This script will extract protein sequences according to the GFF files, as well as splicing isoform information if it exists, and feed this information into the OMA database to prepare for the OMA Standalone run.
 
 You will also need to provide OMA with a species tree that shows the relationship between the annotation species and all other species in OMA.
@@ -105,7 +105,7 @@ Once the OMA Standalone run is complete, the final step is to extract the consen
 #### Usage
 Required arguments ```-a (--gff_annot_folder)```, ```-x (--orthoxml)```, ```-st (--species_tree) ```, ```-f (--fasta_folder)```, ```-o (--output_prefix)```
 
-```usage: OMAnnotation.py extract_consensus [-h] -a GFF_ANNOT_FOLDER -f FASTA_FOLDER -x ORTHOXML -st SPECIES_TREE -o OUTPUT_PREFIX [-t FEATURE_TYPE]```
+```usage: OMAnnotator.py extract_consensus [-h] -a GFF_ANNOT_FOLDER -f FASTA_FOLDER -x ORTHOXML -st SPECIES_TREE -o OUTPUT_PREFIX [-t FEATURE_TYPE]```
 
 #### Arguments
 
@@ -124,6 +124,6 @@ Once this is done, the resulting consensus annotation and protein FASTA file sho
 
 Run this command, substituting the paths corresponding to your directory structure if necessary:
 
-```python OMAnnotation/OMAnnotation.py extract_consensus -g Droso.fasta -a GFF -f FASTA -st OMA.2.6.0/ManualSpeciesTree.nwk -x OMA.2.6.0/Orthoxml.oxml  -o ConsensusAnnotation```
+```python OMAnnotator/OMAnnotator.py extract_consensus -g Droso.fasta -a GFF -f FASTA -st OMA.2.6.0/ManualSpeciesTree.nwk -x OMA.2.6.0/Orthoxml.oxml  -o ConsensusAnnotation```
 
 The resulting files should be available as ConsensusAnnotation.gff and ConsensusAnnotation.fa
