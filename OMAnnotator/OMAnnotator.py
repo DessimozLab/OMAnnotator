@@ -100,8 +100,9 @@ def extract_consensus(args):
     #Obtain the protein identifier for each "consensus" HOG
     protids = get_protid_per_groups(species_tree, orthoxml, '/'.join(['.'.join(f.split('.')[0:-1]) for f in os.listdir(input_fasta_folder)]))
     #Select one sequence for each consensus HOG and obtain its coordinate
-    cons_fasta, cons_gff = select_consensus_sequence(protids,gff_corr, fasta_corr,priorities)
+    cons_fasta, cons_gff, report_data = select_consensus_sequence(protids,gff_corr, fasta_corr,priorities)
     #Write the output files
+    write_report(output_prefix+'.report.txt', report_data)
     write_fasta(output_prefix+'.fa', cons_fasta)
     write_gff(output_prefix+'.gff', cons_gff)
 
@@ -271,8 +272,8 @@ def get_seq_by_prio(hog_prot_list, priorities,corr_fasta_map):
             if sfile==source:
                 seq_id = "_".join([identifier.split(' ')[0], sfile])
                 sequence = corr_fasta_map[seq_id]
-            if seq_id:
-                break
+        if seq_id:
+            break
     return seq_id, sequence
 
 
@@ -289,19 +290,24 @@ def select_consensus_sequence(hog_prot_id_list, corr_gff_map, corr_fasta_map, so
     """
     consensus_seq = []
     consensus_gff = []
+    source_nr = {}
+    chosen_src_nr = {}
     for hog_prot_id in hog_prot_id_list:
-
+        support  = tuple(sorted(set([hif for _, hif in hog_prot_id])))
+        source_nr[support] = source_nr.get(support, 0)+1
         if not source_priorities:
             hog_record_list = [corr_fasta_map["_".join([hid.split(' ')[0], hif])] for hid, hif in hog_prot_id]
             chosen_seq_index, chosen_seq = get_longest_seq(hog_record_list)
             chosen_seq_id = "_".join([hog_prot_id[chosen_seq_index][0].split(' ')[0], hog_prot_id[chosen_seq_index][1]])
-
         else:
             chosen_seq_id, chosen_seq = get_seq_by_prio(hog_prot_id, source_priorities,corr_fasta_map)
+        chosen_src = chosen_seq_id.split('_')[-1]
+        chosen_src_nr[chosen_src] = chosen_src_nr.get(chosen_src, 0)+1
         corr_gff = corr_gff_map[chosen_seq_id]
         consensus_gff.append(corr_gff)
         consensus_seq.append(chosen_seq)
-    return consensus_seq, consensus_gff
+    report = {'selected': chosen_src_nr,'support': source_nr, 'gene_nr': len(consensus_seq)}
+    return consensus_seq, consensus_gff, report
 
 def write_fasta(ofile, consensus_seq):
     """A generalist function to write a FASTA file from a list of records using BioPython
@@ -321,6 +327,25 @@ def write_gff(ofile, consensus_gff):
     """
     with open(ofile, 'w') as output_handle:
         output_handle.write("".join(consensus_gff))
+
+
+
+
+def write_report(ofile, report_data):
+    """A function to write the report of the consensus building.
+    Args: 
+        ofile (str) : Path to the output file
+        report_data (dict) : the data to write into the report
+    """
+    with open(ofile, 'w') as output_handle:
+        output_handle.write(f"Final number of genes: {report_data['gene_nr']}\n")
+        output_handle.write("Number of genes with support by source:\n")
+        for support, number in report_data['support'].items():
+            output_handle.write(f"{','.join(support)}\t{number}\n")
+        output_handle.write("Number of selected gene by source:\n")
+        for selected, number in report_data['selected'].items():
+            output_handle.write(f"{selected}\t{number}\n")
+       
 
 def write_splice(ofile, splice_data, sep='; '):
     """A function to write a splice file for OMA. Used in presence of alternative transcripts for a single gene.
