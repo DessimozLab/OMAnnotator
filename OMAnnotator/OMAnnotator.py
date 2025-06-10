@@ -78,7 +78,9 @@ def extract_consensus(args):
     feature_type_file = args.feature_type
     priorities = args.priorities
     #If a feature_type_file was provided, obtain the mapping. Is used to read non-standard GFF definitions
-    if feature_type_file:   
+    if feature_type_file:
+        logging.info(f'A feature type file was provided. Reading {feature_type_file}')
+  
         feature_type_map = extract_feature_map(feature_type_file)
     else:
         feature_type_map = None
@@ -95,13 +97,17 @@ def extract_consensus(args):
         if corresponding_file != len(gff_files):
             logging.info('List in priorities does not correspond to input file prefixes. Exiting.')
             exit()
+    logging.info('Associating protein sequences to gene annotaton in the GFF files.')
     #Get the correspondance between genes/proteins in the GFF file and sequences in the FASTA file
     fasta_corr, gff_corr = map_gff_fasta(fasta_files, gff_files, feature_type_map)
     #Obtain the protein identifier for each "consensus" HOG
+    logging.info('Extracting orthologous groups info from OMA.')
     protids = get_protid_per_groups(species_tree, orthoxml, '/'.join(['.'.join(f.split('.')[0:-1]) for f in os.listdir(input_fasta_folder)]))
     #Select one sequence for each consensus HOG and obtain its coordinate
+    logging.info('Selecting consensus annotation for each group.')
     cons_fasta, cons_gff, report_data = select_consensus_sequence(protids,gff_corr, fasta_corr,priorities)
     #Write the output files
+    logging.info('Writing output files.')
     write_report(output_prefix+'.report.txt', report_data)
     write_fasta(output_prefix+'.fa', cons_fasta)
     write_gff(output_prefix+'.gff', cons_gff)
