@@ -11,6 +11,8 @@ import time
 from pyfaidx import Fasta
 import json
 import urllib3
+import numpy as np
+import pandas as pd
 
 def build_arg_parser():
     """Handle the parameter sent when executing the script from the terminal
@@ -102,13 +104,18 @@ def extract_consensus(args):
     fasta_corr, gff_corr = map_gff_fasta(fasta_files, gff_files, feature_type_map)
     #Obtain the protein identifier for each "consensus" HOG
     logging.info('Extracting orthologous groups info from OMA.')
-    protids = get_protid_per_groups(species_tree, orthoxml, '/'.join(['.'.join(f.split('.')[0:-1]) for f in os.listdir(input_fasta_folder)]))
+    protids, hoglist = get_protid_per_groups(species_tree, orthoxml, '/'.join(['.'.join(f.split('.')[0:-1]) for f in os.listdir(input_fasta_folder)]))
     #Select one sequence for each consensus HOG and obtain its coordinate
     logging.info('Selecting consensus annotation for each group.')
-    cons_fasta, cons_gff, report_data = select_consensus_sequence(protids,gff_corr, fasta_corr,priorities)
+    cons_fasta, cons_gff, selected_by_src = select_consensus_sequence(protids,gff_corr, fasta_corr,priorities)
+    #Get the id of selected genes, order should be the same as hoglist
+    ordered_ids = [seq.id for seq in cons_fasta]
+    report_data_counter, support_matrix = make_support_analysis(hoglist,ordered_ids)
+    report_data = {"gene_nr": len(cons_fasta), 'support': report_data_counter, 'selected' : selected_by_src}
     #Write the output files
     logging.info('Writing output files.')
     write_report(output_prefix+'.report.txt', report_data)
+    write_matrix(output_prefix+'.detailed_report.txt', support_matrix)
     write_fasta(output_prefix+'.fa', cons_fasta)
     write_gff(output_prefix+'.gff', cons_gff)
 
@@ -123,6 +130,7 @@ def get_protid_per_groups(tree_path, orthoxml_path, ancestor):
         hog_protid (list) : a list of list, one by HOG, that contains protein ids (str) 
         """
     hog_protid = list()
+    hog_list = list()
     #Access the OrthoXML content with pyham
     tree = pyham.utils.get_newick_string(tree_path, type="nwk")
     ham_analysis = pyham.Ham(tree, orthoxml_path, use_internal_name=False)
@@ -135,8 +143,45 @@ def get_protid_per_groups(tree_path, orthoxml_path, ancestor):
     ancestor_genome = ham_analysis.get_ancestral_genome_by_name(ancestor)
     ancestral_genes = ancestor_genome.genes
     for gene in ancestral_genes:
+        
         hog_protid.append([(g.prot_id,g.genome.name) for g in gene.get_all_descendant_genes()])
-    return hog_protid
+        hog_list.append(gene)
+    return hog_protid, hog_list
+
+def make_support_analysis(hoglist, select_seq_id):
+    """Extract information about the sources supporting each of the selected genes in the dataset, as well as the sum.
+    Args:
+        hoglist (list): List of HOGs at the target node ('ancestor' of all of the input sources)
+        select_seq_id (list) : List of identifiers of all selected genes
+    Returns:
+        counter (dict) : A dictionary made to count genes with support from each source and whether or not they have external homology support for the species in OMA.
+        df_support (dataframe) : a gene by gene support matrix, mark from which source annotations and each of the OMA species supporting it.
+        """
+    counter = dict()
+    support_occurence = dict()
+    for index, hog in enumerate(hoglist):
+        rhog = hog.get_top_level_hog()
+        level_rhog = rhog.genome.name
+        all_support = set([g.genome.name for g in rhog.get_all_descendant_genes()])
+        sources = [l.name for l in hog.genome.taxon.get_leaves()]
+        source_support = set([g.genome.name for g in hog.get_all_descendant_genes()])
+        homology_support = all_support.difference(sources)
+        if len(homology_support) != 0:
+            source_support = source_support |{"other_species_support"}
+        support_key = tuple(source_support)
+        counter[support_key]= counter.get(support_key,0)+1
+        for supp in all_support:
+            support_occurence[supp]= support_occurence.get(supp, []) + [index]
+    support_matrix = np.zeros((len(hoglist), len(support_occurence.keys())))
+    for j, key in enumerate(support_occurence):
+        ind_pos = support_occurence[key]
+        for k in ind_pos:
+            support_matrix[k][j]=1
+    support_matrix = np.vstack((support_matrix,np.sum(support_matrix,axis=0)), )
+    df_support = pd.DataFrame(support_matrix, columns=list(support_occurence.keys()), index=select_seq_id+['Total'])
+    
+    return counter, df_support       
+
 
 def map_gff_fasta(fasta_file, gff_file, gff_map =None):
     """Obtain the correspondance between protein sequences in the FASTA file and the corresponding entry in the corresponding file (shared prefix).
@@ -296,11 +341,8 @@ def select_consensus_sequence(hog_prot_id_list, corr_gff_map, corr_fasta_map, so
     """
     consensus_seq = []
     consensus_gff = []
-    source_nr = {}
     chosen_src_nr = {}
     for hog_prot_id in hog_prot_id_list:
-        support  = tuple(sorted(set([hif for _, hif in hog_prot_id])))
-        source_nr[support] = source_nr.get(support, 0)+1
         if not source_priorities:
             hog_record_list = [corr_fasta_map["_".join([hid.split(' ')[0], hif])] for hid, hif in hog_prot_id]
             chosen_seq_index, chosen_seq = get_longest_seq(hog_record_list)
@@ -312,8 +354,8 @@ def select_consensus_sequence(hog_prot_id_list, corr_gff_map, corr_fasta_map, so
         corr_gff = corr_gff_map[chosen_seq_id]
         consensus_gff.append(corr_gff)
         consensus_seq.append(chosen_seq)
-    report = {'selected': chosen_src_nr,'support': source_nr, 'gene_nr': len(consensus_seq)}
-    return consensus_seq, consensus_gff, report
+    selected_by_src =  chosen_src_nr
+    return consensus_seq, consensus_gff, selected_by_src
 
 def write_fasta(ofile, consensus_seq):
     """A generalist function to write a FASTA file from a list of records using BioPython
@@ -334,6 +376,13 @@ def write_gff(ofile, consensus_gff):
     with open(ofile, 'w') as output_handle:
         output_handle.write("".join(consensus_gff))
 
+def write_matrix(ofile, matrix):
+    """A function to write a dataframe to an output file.
+    Args:
+        ofile (str) : Path to the output file
+        matrix (DataFrame) : a pandas DataFrame
+    """
+    matrix.to_csv(ofile)
 
 
 
@@ -343,12 +392,14 @@ def write_report(ofile, report_data):
         ofile (str) : Path to the output file
         report_data (dict) : the data to write into the report
     """
+    next_section = "-"*24+'\n'
     with open(ofile, 'w') as output_handle:
-        output_handle.write(f"Final number of genes: {report_data['gene_nr']}\n")
-        output_handle.write("Number of genes with support by source:\n")
+        output_handle.write(f"#Final number of genes: {report_data['gene_nr']}\n")
+        output_handle.write("#Number of genes with support by source:\n")
         for support, number in report_data['support'].items():
             output_handle.write(f"{','.join(support)}\t{number}\n")
-        output_handle.write("Number of selected gene by source:\n")
+        output_handle.write(next_section)
+        output_handle.write("#Number of selected genes by source:\n")
         for selected, number in report_data['selected'].items():
             output_handle.write(f"{selected}\t{number}\n")
        
