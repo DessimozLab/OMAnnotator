@@ -4,12 +4,11 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - biopython=1.78=py39h7f8727e_0
-  - gemoma=1.7.1=hdfd78af_0
-  - genometools-genometools=1.6.2=py39h6bd6087_3
-  - gffutils=0.10.1=pyh864c0ab_1
-  - python=3.9.12=h9a8a25e_1_cpython
-  - urllib3=2.2.2=pyhd8ed1ab_1
+  - biopython=1.78
+  - gffutils=0.10.1
+  - python=3.9.12
+  - urllib3=2.2.2
+  - pandas=2.3.0
   - pip:
     - pyham==1.1.11
 
