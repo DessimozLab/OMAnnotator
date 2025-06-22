@@ -41,7 +41,7 @@ First, we will download the OMA orthology data for the following five species us
 - *Drosophila simulans*
 - *Lucilia cuprina*
 - *Megaselia scalaris*
-- *Aedes aegyptii*
+- *Aedes aegypti*
 - *Bombyx mori*
 
 Select them in the tree and then click ``submit```. Once the archive is ready, download it, move it to your working directory, and unzip it.
