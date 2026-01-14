@@ -105,7 +105,7 @@ Once the OMA Standalone run is complete, the final step is to extract the consen
 #### Usage
 Required arguments ```-a (--gff_annot_folder)```, ```-x (--orthoxml)```, ```-st (--species_tree) ```, ```-f (--fasta_folder)```, ```-o (--output_prefix)```
 
-```usage: OMAnnotator.py extract_consensus [-h] -a GFF_ANNOT_FOLDER -f FASTA_FOLDER -x ORTHOXML -st SPECIES_TREE -o OUTPUT_PREFIX [-t FEATURE_TYPE]```
+```usage: OMAnnotator.py extract_consensus [-h] -a GFF_ANNOT_FOLDER -f FASTA_FOLDER -x ORTHOXML -st SPECIES_TREE -o OUTPUT_PREFIX [-t FEATURE_TYPE]   [-p PRIORITIES]```
 
 #### Arguments
 
@@ -117,6 +117,7 @@ Required arguments ```-a (--gff_annot_folder)```, ```-x (--orthoxml)```, ```-st 
 | ``-st`` ``--species_tree``  |  | Path to the species tree used in the OMA Standalone run, in newick format. A copy can be found in the output folder of OMA as ManualSpeciesTree.nwk                                                      |
 | ``-o` ``	``--output_prefix``                |             | Output file path and prefix. Two output files will be created: a GFF annotation file and a FASTA file.'format.                                                                                                 |
 | ``-t`` ``--feature_type``         | None            | Path to a tsv file indicating which feature should be used in GFF file to define gene, transcript or CDS. 4 columns by line in order: filename, gene, transcript, cds. (Optionnal)|
+| ``-p`` ``--priorities``         | None            |  Comma-separated string indicating, in order of priorities, which source to use to make the reference sequence for each consensus gene. Should contain all file prefixes. Ex: rna,abinitio,homology |
 
 Once this is done, the resulting consensus annotation and protein FASTA file should be available at the provided output path.
 
@@ -124,6 +125,7 @@ Once this is done, the resulting consensus annotation and protein FASTA file sho
 
 Run this command, substituting the paths corresponding to your directory structure if necessary:
 
-```python OMAnnotator/OMAnnotator.py extract_consensus -g Droso.fasta -a GFF -f FASTA -st OMA.2.6.0/ManualSpeciesTree.nwk -x OMA.2.6.0/Orthoxml.oxml  -o ConsensusAnnotation```
+```python OMAnnotator/OMAnnotator.py extract_consensus -g Droso.fasta -a GFF -f FASTA -st OMA.2.6.0/ManualSpeciesTree.nwk -x OMA.2.6.0/Orthoxml.oxml  -o ConsensusAnnotation -p rna,homology,abinitio```
+Note: The -p option is optional but is strongly recommended if one annotation method is believed to provide overall better quality gene models (for example, if one of the methods uses transcriptomic data to predict gene structure) compared to other.
 
 The resulting files should be available as ConsensusAnnotation.gff and ConsensusAnnotation.fa

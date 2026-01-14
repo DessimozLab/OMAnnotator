@@ -1,8 +1,7 @@
-name: OMAnnotation_env
+name: OMAnnotator_env
 channels:
   - conda-forge
   - bioconda
-  - defaults
 dependencies:
   - biopython=1.78
   - gffutils=0.10.1
